@@ -47,6 +47,7 @@ async def user_search(message: types.Message, state: FSMContext):
             user = user_search_ad(data['user'], conn)
             await message.answer(f'Пользователь найден\n{user}')
             if reset_pass(user, conn):
+                await state.finish()
                 await message.answer('Пароль сброшен')
             else:
                 await state.finish()
