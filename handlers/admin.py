@@ -1,9 +1,9 @@
 from aiogram.dispatcher.filters import Text
-# from ldap3 import Server, Connection, SUBTREE, ALL
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types, Dispatcher
 from create_bot import dp
+from connection.connection import connect_to_ad, user_search_ad, reset_pass
 
 
 class FSMAdmin(StatesGroup):
@@ -36,12 +36,21 @@ async def admin_passwd(message: types.Message, state: FSMContext):
 
 # @dp.message_handler(state=FSMAdmin.user)
 async def user_search(message: types.Message, state: FSMContext):
+    await message.reply('Все данные приняты')
     async with state.proxy() as data:
         data['user'] = message.text
-    await message.reply('Все данные приняты')
-    # async with state.proxy() as data:
-
-    await state.finish()
+        conn = connect_to_ad(data['admin_user'], data['admin_passwd'])
+        if not conn.bind():
+           await message.answer('Нет соединения с сервером AD')
+           await state.finish()
+        else:
+            user = user_search_ad(data['user'], conn)
+            await message.answer(f'Пользователь найден\n{user}')
+            if reset_pass(user, conn):
+                await message.answer('Пароль сброшен')
+            else:
+                await state.finish()
+                await message.answer('Что-то пошло не так')
 
 
 @dp.message_handler(state="*", commands='отмена')
@@ -59,32 +68,3 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(admin_login, state=FSMAdmin.admin_user)
     dp.register_message_handler(admin_passwd, state=FSMAdmin.admin_passwd)
     dp.register_message_handler(user_search, state=FSMAdmin.user)
-
-    # AD_SERVER = 'kmf.local'
-    # AD_SEARCH_TREE = 'dc=kmf,dc=local'
-    # USER_DN = ''
-
-    # await message.reply(data['admin_user'])
-    #
-    # user = 'kmf\\' + str(data['admin_user'])
-    # pwd = str(data['admin_passwd'])
-    # await message.answer(user, pwd)
-    # server = Server(AD_SERVER, get_info=ALL, use_ssl=True)
-    # conn = Connection(server, user=user, password=pwd, auto_bind=True)
-    # if not conn.bind():
-    #     await message.answer('Нет связи с сервером!')
-    #     await state.finish()
-    # else:
-    #     SEARCHFILTER = '(&(|(sAMAccountname=' + data['user'] + '))(objectClass=person))'
-    #     await conn.search(search_base=AD_SEARCH_TREE, search_filter=SEARCHFILTER, search_scope=SUBTREE,
-    #                       attributes=['cn', 'givenName'], paged_size=5)
-    #     for entry in conn.response:
-    #         if entry.get("dn") and entry.get("attributes"):
-    #             if entry.get("attributes").get("cn"):
-    #                 USER_DN = entry.get("dn")
-    #
-    #     await message.answer(f'Юзер найден\n{USER_DN}')
-    #     if conn.extend.microsoft.modify_password(USER_DN, '123qweASD'):
-    #         await message.answer('Пароль заменен на стандартный')
-    #     else:
-    #         await message.answer('Что-то пошло не так?!')
