@@ -36,22 +36,27 @@ async def admin_passwd(message: types.Message, state: FSMContext):
 
 # @dp.message_handler(state=FSMAdmin.user)
 async def user_search(message: types.Message, state: FSMContext):
-    await message.reply('Все данные приняты')
     async with state.proxy() as data:
         data['user'] = message.text
+        await message.reply('Все данные приняты')
         conn = connect_to_ad(data['admin_user'], data['admin_passwd'])
-        if not conn.bind():
-           await message.answer('Нет соединения с сервером AD')
-           await state.finish()
+        if conn is None or not conn.bind():
+            await message.answer('Нет соединения с сервером AD')
+            await state.finish()
         else:
+            await message.answer('Соединение с сервером установлено')
             user = user_search_ad(data['user'], conn)
-            await message.answer(f'Пользователь найден\n{user}')
-            if reset_pass(user, conn):
+            if not user:
+                await message.answer('Нет такого юзера')
                 await state.finish()
-                await message.answer('Пароль сброшен')
             else:
-                await state.finish()
-                await message.answer('Что-то пошло не так')
+                await message.answer(f'Пользователь найден\n{user}')
+                if reset_pass(user, conn):
+                    await state.finish()
+                    await message.answer('Пароль сброшен')
+                else:
+                    await state.finish()
+                    await message.answer('Что-то пошло не так')
 
 
 @dp.message_handler(state="*", commands='отмена')
