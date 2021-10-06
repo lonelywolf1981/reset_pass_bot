@@ -1,5 +1,9 @@
+import logging
+from ldap3.utils.log import set_library_log_detail_level, PROTOCOL
+logging.basicConfig(filename='log/client_application.log', level=logging.DEBUG)
+set_library_log_detail_level(PROTOCOL)
 from ldap3 import Server, Connection, SUBTREE, ALL
-from ldap3.core.exceptions import LDAPBindError, LDAPInvalidDnError
+from ldap3.core.exceptions import LDAPBindError
 
 AD_SERVER = 'kmf.local'
 AD_SEARCH_TREE = 'dc=kmf,dc=local'
