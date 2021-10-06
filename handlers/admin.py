@@ -18,6 +18,16 @@ async def cm_reset(message: types.Message):
     await message.reply('Введите логин админа')
 
 
+@dp.message_handler(state="*", commands='отмена')
+@dp.message_handler(Text(equals='отмена', ignore_case=True), state="*")
+async def cancel_handler(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+    await state.finish()
+    await message.reply('OK')
+
+
 # @dp.message_handler(state=FSMAdmin.admin_user)
 async def admin_login(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
@@ -57,16 +67,6 @@ async def user_search(message: types.Message, state: FSMContext):
                 else:
                     await state.finish()
                     await message.answer('Что-то пошло не так')
-
-
-@dp.message_handler(state="*", commands='отмена')
-@dp.message_handler(Text(equals='отмена', ignore_case=True), state="*")
-async def cancel_handler(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is None:
-        return
-    await state.finish()
-    await message.reply('OK')
 
 
 def register_handlers_admin(dp: Dispatcher):
